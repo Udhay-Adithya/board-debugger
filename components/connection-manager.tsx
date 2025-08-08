@@ -27,22 +27,35 @@ export function ConnectionManager() {
     setConnectionError(null)
 
     try {
-      if (!navigator.usb) {
-        throw new Error('Web USB not supported')
+      const nav = navigator as Navigator & { usb?: any; serial?: any }
+
+      if (nav.usb) {
+        const device = await nav.usb.requestDevice({
+          filters: [
+            { vendorId: 0x2341 }, // Arduino
+            { vendorId: 0x10C4 }, // Silicon Labs (ESP32)
+          ]
+        })
+
+        await device.open()
+        setConnectionStatus('connected')
+        // Start mock data simulation
+        simulateBoardData()
+        return
       }
 
-      const device = await navigator.usb.requestDevice({
-        filters: [
-          { vendorId: 0x2341 }, // Arduino
-          { vendorId: 0x10C4 }, // Silicon Labs (ESP32)
-        ]
-      })
+      // Fallback to Web Serial (supported in Chrome/Edge) when WebUSB is unavailable
+      if (nav.serial) {
+        const port = await nav.serial.requestPort()
+        // Try a common baud rate; real app should allow configuring this
+        await port.open({ baudRate: 115200 })
+        setConnectionStatus('connected')
+        simulateBoardData()
+        return
+      }
 
-      await device.open()
-      setConnectionStatus('connected')
-      
-      // Start mock data simulation
-      simulateBoardData()
+      // Neither API available
+      throw new Error('This browser does not support WebUSB or Web Serial. Use Chrome/Edge on HTTPS or localhost.')
       
     } catch (error) {
       setConnectionStatus('error')
@@ -56,11 +69,12 @@ export function ConnectionManager() {
     setConnectionError(null)
 
     try {
-      if (!navigator.bluetooth) {
+      const nav = navigator as Navigator & { bluetooth?: any }
+      if (!nav.bluetooth) {
         throw new Error('Web Bluetooth not supported')
       }
 
-      const device = await navigator.bluetooth.requestDevice({
+      const device = await nav.bluetooth.requestDevice({
         acceptAllDevices: true,
         optionalServices: ['battery_service']
       })

@@ -32,21 +32,31 @@ export function ConnectionSidebar() {
     setConnectionError(null)
 
     try {
-      const nav = navigator as Navigator & { usb?: any }
-      if (!nav.usb) {
-        throw new Error('Web USB not supported')
+      const nav = navigator as Navigator & { usb?: any; serial?: any }
+
+      if (nav.usb) {
+        const device = await nav.usb.requestDevice({
+          filters: [
+            { vendorId: 0x2341 }, // Arduino
+            { vendorId: 0x10C4 }, // Silicon Labs (ESP32)
+          ]
+        })
+
+        await device.open()
+        setConnectionStatus('connected')
+        simulateBoardData()
+        return
       }
 
-      const device = await nav.usb.requestDevice({
-        filters: [
-          { vendorId: 0x2341 }, // Arduino
-          { vendorId: 0x10C4 }, // Silicon Labs (ESP32)
-        ]
-      })
+      if (nav.serial) {
+        const port = await nav.serial.requestPort()
+        await port.open({ baudRate: 115200 })
+        setConnectionStatus('connected')
+        simulateBoardData()
+        return
+      }
 
-      await device.open()
-      setConnectionStatus('connected')
-      simulateBoardData()
+      throw new Error('This browser does not support WebUSB or Web Serial. Use Chrome/Edge on HTTPS or localhost.')
 
     } catch (error) {
       setConnectionStatus('error')
