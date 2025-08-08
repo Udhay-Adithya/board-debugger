@@ -1,15 +1,13 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { GeistSans, GeistMono } from 'geist/font'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Navigation } from '@/components/navigation'
 
-const inter = Inter({ subsets: ['latin'] })
-
 export const metadata: Metadata = {
   title: 'Board Debugger - Real-time GPIO Visualization',
   description: 'Professional real-time board debugging with 3D visualization and waveform analysis',
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -19,16 +17,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${GeistSans.className} antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >
-          <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+          <div className="min-h-screen bg-background">
             <Navigation />
-            <main className="transition-all duration-300 ease-in-out">
+            <main className="transition-all duration-200 ease-out">
               {children}
             </main>
           </div>
