@@ -1,0 +1,260 @@
+"use client"
+
+import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
+import { useBoardStore } from "@/lib/store"
+import { Activity, Play, Pause, Trash2, Download, Settings, Zap } from 'lucide-react'
+
+export function WaveformSidebar() {
+  const { 
+    boardState, 
+    waveformPins, 
+    toggleWaveformPin,
+    connectionStatus 
+  } = useBoardStore()
+  
+  const [isPaused, setIsPaused] = useState(false)
+  const [timeScale, setTimeScale] = useState(5000)
+
+  if (!boardState) {
+    return (
+      <div className="h-full glass border-r border-white/10 p-6">
+        <div className="text-center py-12">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 flex items-center justify-center">
+            <Activity className="w-8 h-8 text-white" />
+          </div>
+          <h3 className="text-lg font-semibold text-white mb-2">
+            No Board Connected
+          </h3>
+          <p className="text-gray-400 text-sm">
+            Connect to a board to analyze waveforms
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const analogPins = boardState.pins.filter(pin => pin.type === 'ANALOG')
+  const digitalPins = boardState.pins.filter(pin => pin.type === 'DIGITAL')
+
+  const clearWaveforms = () => {
+    console.log('Clearing waveforms')
+  }
+
+  const exportData = () => {
+    console.log('Exporting waveform data')
+  }
+
+  return (
+    <div className="h-full glass border-r border-white/10 p-6 space-y-6 overflow-y-auto">
+      {/* Connection Status */}
+      <Card className="glass border-white/10">
+        <CardHeader>
+          <CardTitle className="flex items-center text-lg">
+            <Zap className="w-5 h-5 mr-2 text-cyan-400" />
+            Waveform Control
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsPaused(!isPaused)}
+              className="flex-1 border-white/20 text-gray-300 hover:bg-white/5"
+            >
+              {isPaused ? <Play className="w-4 h-4 mr-2" /> : <Pause className="w-4 h-4 mr-2" />}
+              {isPaused ? 'Resume' : 'Pause'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={clearWaveforms}
+              className="border-white/20 text-gray-300 hover:bg-white/5"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          <Button
+            variant="outline"
+            onClick={exportData}
+            className="w-full border-white/20 text-gray-300 hover:bg-white/5"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export Data
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Time Scale */}
+      <Card className="glass border-white/10">
+        <CardHeader>
+          <CardTitle className="flex items-center text-lg">
+            <Settings className="w-5 h-5 mr-2 text-purple-400" />
+            Time Scale
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-2">
+            {[1000, 5000, 10000, 30000].map(scale => (
+              <Button
+                key={scale}
+                size="sm"
+                variant={timeScale === scale ? "default" : "outline"}
+                onClick={() => setTimeScale(scale)}
+                className={timeScale === scale 
+                  ? "bg-gradient-to-r from-blue-500 to-cyan-400" 
+                  : "border-white/20 text-gray-300 hover:bg-white/5"
+                }
+              >
+                {scale / 1000}s
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pin Selection */}
+      <Card className="glass border-white/10">
+        <CardHeader>
+          <CardTitle className="flex items-center text-lg">
+            <Activity className="w-5 h-5 mr-2 text-green-400" />
+            Pin Selection
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Analog Pins */}
+          {analogPins.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-300 mb-3">Analog Pins</h4>
+              <div className="space-y-2">
+                {analogPins.map(pin => (
+                  <div key={pin.id} className="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200">
+                    <div className="flex items-center space-x-3">
+                      <Checkbox
+                        id={pin.id}
+                        checked={waveformPins.includes(pin.id)}
+                        onCheckedChange={() => toggleWaveformPin(pin.id)}
+                      />
+                      <div>
+                        <label
+                          htmlFor={pin.id}
+                          className="text-sm font-medium text-white cursor-pointer"
+                        >
+                          {pin.id}
+                        </label>
+                        <div className="text-xs text-gray-400">
+                          {typeof pin.value === 'number' ? pin.value : 0} 
+                          {pin.voltage && ` (${pin.voltage.toFixed(1)}V)`}
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="border-blue-400/20 text-blue-400">
+                      ANALOG
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Digital Pins */}
+          {digitalPins.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-300 mb-3">Digital Pins</h4>
+              <div className="space-y-2">
+                {digitalPins.map(pin => (
+                  <div key={pin.id} className="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-200">
+                    <div className="flex items-center space-x-3">
+                      <Checkbox
+                        id={pin.id}
+                        checked={waveformPins.includes(pin.id)}
+                        onCheckedChange={() => toggleWaveformPin(pin.id)}
+                      />
+                      <div>
+                        <label
+                          htmlFor={pin.id}
+                          className="text-sm font-medium text-white cursor-pointer"
+                        >
+                          {pin.id}
+                        </label>
+                        <div className="text-xs text-gray-400">
+                          {pin.value} {pin.isPWM && `(${pin.pwmDuty}% PWM)`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {pin.isPWM && (
+                        <Badge variant="outline" className="border-orange-400/20 text-orange-400 text-xs">
+                          PWM
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className={`text-xs ${
+                        pin.value === 'HIGH' 
+                          ? 'border-green-400/20 text-green-400' 
+                          : 'border-red-400/20 text-red-400'
+                      }`}>
+                        {pin.value}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {waveformPins.length === 0 && (
+            <div className="text-center py-8">
+              <Activity className="w-12 h-12 mx-auto text-gray-500 mb-3" />
+              <p className="text-sm text-gray-400">
+                Select pins to monitor their waveforms
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Active Waveforms */}
+      {waveformPins.length > 0 && (
+        <Card className="glass border-white/10">
+          <CardHeader>
+            <CardTitle className="text-lg text-white">
+              Active Waveforms ({waveformPins.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {waveformPins.map((pinId, index) => {
+                const pin = boardState.pins.find(p => p.id === pinId)
+                const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#ff00ff']
+                return (
+                  <div key={pinId} className="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                    <div className="flex items-center space-x-2">
+                      <div 
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: colors[index % colors.length] }}
+                      />
+                      <span className="text-sm font-medium text-white">{pinId}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => toggleWaveformPin(pinId)}
+                      className="text-gray-400 hover:text-white h-6 w-6 p-0"
+                    >
+                      ×
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
