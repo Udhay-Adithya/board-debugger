@@ -64,7 +64,7 @@ export function PinDetailsPanel() {
             </div>
           )}
           <div className="w-full bg-gray-700 rounded-full h-2">
-            <div 
+            <div
               className="bg-gradient-to-r from-blue-500 to-cyan-400 h-2 rounded-full transition-all duration-300"
               style={{ width: `${(typeof selectedPin.value === 'number' ? selectedPin.value : 0) / 1023 * 100}%` }}
             />
@@ -72,7 +72,7 @@ export function PinDetailsPanel() {
         </div>
       )
     }
-    
+
     return (
       <div className="space-y-2">
         <div className={`text-4xl font-bold ${selectedPin.value === 'HIGH' ? 'text-green-400' : 'text-red-400'}`}>
@@ -88,14 +88,14 @@ export function PinDetailsPanel() {
   }
 
   return (
-    <div className="h-full glass border-l border-white/10 p-6 space-y-6 overflow-y-auto animate-slide-in-right">
+    <div className="h-full border-l border-border p-6 space-y-6 overflow-y-auto animate-slide-in-right bg-background/60">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           {getPinIcon()}
           <div>
-            <h2 className="text-2xl font-bold text-white">Pin {selectedPin.id}</h2>
-            <Badge variant="outline" className="border-white/20 text-cyan-400">
+            <h2 className="text-xl font-semibold">Pin {selectedPin.id}</h2>
+            <Badge variant="outline">
               {selectedPin.type}
             </Badge>
           </div>
@@ -104,16 +104,16 @@ export function PinDetailsPanel() {
           variant="ghost"
           size="sm"
           onClick={() => selectPin(null)}
-          className="text-gray-400 hover:text-white"
+          className="text-muted-foreground hover:text-foreground"
         >
           <X className="w-4 h-4" />
         </Button>
       </div>
 
       {/* Current Value */}
-      <Card className="glass border-white/10">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-white">Current Value</CardTitle>
+          <CardTitle className="text-lg">Current Value</CardTitle>
         </CardHeader>
         <CardContent>
           {getValueDisplay()}
@@ -121,50 +121,35 @@ export function PinDetailsPanel() {
       </Card>
 
       {/* Pin Mode */}
-      <Card className="glass border-white/10">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center text-lg text-white">
+          <CardTitle className="flex items-center text-lg">
             <Settings className="w-4 h-4 mr-2" />
             Pin Mode
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-gray-300">Current Mode:</span>
-            <Badge variant="secondary" className="bg-white/10 text-white">
+            <span className="text-muted-foreground">Current Mode:</span>
+            <Badge variant="secondary">
               {selectedPin.mode}
             </Badge>
           </div>
-          
+
           {selectedPin.mode === 'OUTPUT' && (
             <div className="space-y-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleModeChange('INPUT')}
-                className="w-full border-white/20 text-gray-300 hover:bg-white/5"
-              >
+              <Button size="sm" variant="outline" onClick={() => handleModeChange('INPUT')} className="w-full">
                 Switch to Input
               </Button>
             </div>
           )}
-          
+
           {selectedPin.mode === 'INPUT' && (
             <div className="space-y-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleModeChange('OUTPUT')}
-                className="w-full border-white/20 text-gray-300 hover:bg-white/5"
-              >
+              <Button size="sm" variant="outline" onClick={() => handleModeChange('OUTPUT')} className="w-full">
                 Switch to Output
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleModeChange('INPUT_PULLUP')}
-                className="w-full border-white/20 text-gray-300 hover:bg-white/5"
-              >
+              <Button size="sm" variant="outline" onClick={() => handleModeChange('INPUT_PULLUP')} className="w-full">
                 Enable Pull-up
               </Button>
             </div>
@@ -174,9 +159,9 @@ export function PinDetailsPanel() {
 
       {/* Controls for Output pins */}
       {selectedPin.mode === 'OUTPUT' && (
-        <Card className="glass border-white/10">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center text-lg text-white">
+            <CardTitle className="flex items-center text-lg">
               <Power className="w-4 h-4 mr-2" />
               Pin Control
             </CardTitle>
@@ -187,11 +172,7 @@ export function PinDetailsPanel() {
                 <label className="text-sm text-gray-300 mb-2 block">Digital Output</label>
                 <Button
                   onClick={handleDigitalToggle}
-                  className={`w-full transition-all duration-300 ${
-                    selectedPin.value === 'HIGH' 
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-400 hover:from-green-400 hover:to-emerald-300' 
-                      : 'bg-gradient-to-r from-red-500 to-rose-400 hover:from-red-400 hover:to-rose-300'
-                  }`}
+                  className={`w-full ${selectedPin.value === 'HIGH' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}
                 >
                   {selectedPin.value === 'HIGH' ? 'Set LOW' : 'Set HIGH'}
                 </Button>
@@ -211,7 +192,7 @@ export function PinDetailsPanel() {
                   step={1}
                   className="w-full"
                 />
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
                   <span>0%</span>
                   <span>100%</span>
                 </div>
@@ -222,12 +203,12 @@ export function PinDetailsPanel() {
       )}
 
       {/* Waveform Toggle */}
-      <Card className="glass border-white/10">
+      <Card>
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-medium text-white">Show Waveform</h4>
-              <p className="text-xs text-gray-400">
+              <h4 className="text-sm font-medium">Show Waveform</h4>
+              <p className="text-xs text-muted-foreground">
                 Monitor this pin in the waveform viewer
               </p>
             </div>
@@ -240,30 +221,30 @@ export function PinDetailsPanel() {
       </Card>
 
       {/* Pin Information */}
-      <Card className="glass border-white/10">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-white">Pin Information</CardTitle>
+          <CardTitle className="text-lg">Pin Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-gray-400">Type:</span>
-              <span className="text-white ml-2">{selectedPin.type}</span>
+              <span className="text-muted-foreground">Type:</span>
+              <span className="ml-2">{selectedPin.type}</span>
             </div>
             <div>
-              <span className="text-gray-400">Mode:</span>
-              <span className="text-white ml-2">{selectedPin.mode}</span>
+              <span className="text-muted-foreground">Mode:</span>
+              <span className="ml-2">{selectedPin.mode}</span>
             </div>
             {selectedPin.isPWM && (
               <div>
-                <span className="text-gray-400">PWM:</span>
-                <span className="text-green-400 ml-2">Capable</span>
+                <span className="text-muted-foreground">PWM:</span>
+                <span className="text-emerald-400 ml-2">Capable</span>
               </div>
             )}
             {selectedPin.type === 'ANALOG' && (
               <div>
-                <span className="text-gray-400">Resolution:</span>
-                <span className="text-white ml-2">10-bit (0-1023)</span>
+                <span className="text-muted-foreground">Resolution:</span>
+                <span className="ml-2">10-bit (0-1023)</span>
               </div>
             )}
           </div>

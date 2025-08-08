@@ -35,21 +35,21 @@ export interface BoardStore {
   connectionType: ConnectionType | null
   connectionStatus: ConnectionStatus
   connectionError: string | null
-  
+
   // Board state
   boardState: BoardState | null
   selectedPin: Pin | null
-  
+
   // Waveform data
   waveformData: Record<string, WaveformData[]>
   waveformPins: string[]
-  
+
   // Settings
   refreshRate: number
   theme: 'light' | 'dark'
-  
+
   // Actions
-  setConnectionType: (type: ConnectionType) => void
+  setConnectionType: (type: ConnectionType | null) => void
   setConnectionStatus: (status: ConnectionStatus) => void
   setConnectionError: (error: string | null) => void
   updateBoardState: (state: BoardState) => void
@@ -77,10 +77,10 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   setConnectionType: (type) => set({ connectionType: type }),
   setConnectionStatus: (status) => set({ connectionStatus: status }),
   setConnectionError: (error) => set({ connectionError: error }),
-  
+
   updateBoardState: (state) => {
     set({ boardState: state })
-    
+
     // Update selected pin if it exists in new state
     const { selectedPin } = get()
     if (selectedPin) {
@@ -90,14 +90,14 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       }
     }
   },
-  
+
   selectPin: (pin) => set({ selectedPin: pin }),
-  
+
   addWaveformData: (pinId, data) => {
     const { waveformData } = get()
     const existingData = waveformData[pinId] || []
     const newData = [...existingData, ...data].slice(-1000) // Keep last 1000 points
-    
+
     set({
       waveformData: {
         ...waveformData,
@@ -105,21 +105,21 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       }
     })
   },
-  
+
   toggleWaveformPin: (pinId) => {
     const { waveformPins } = get()
     const isActive = waveformPins.includes(pinId)
-    
+
     set({
-      waveformPins: isActive 
+      waveformPins: isActive
         ? waveformPins.filter(id => id !== pinId)
         : [...waveformPins, pinId]
     })
   },
-  
+
   setRefreshRate: (rate) => set({ refreshRate: rate }),
   setTheme: (theme) => set({ theme }),
-  
+
   sendCommand: (command) => {
     // This would send commands to the connected board
     console.log('Sending command:', command)

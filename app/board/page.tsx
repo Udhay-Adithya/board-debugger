@@ -22,14 +22,14 @@ export default function BoardPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="glass border-b border-white/10 p-4">
+        <div className="border-b border-border p-4 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="text-gray-300 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 {sidebarOpen ? (
                   <PanelLeftClose className="w-4 h-4" />
@@ -37,12 +37,10 @@ export default function BoardPage() {
                   <PanelLeftOpen className="w-4 h-4" />
                 )}
               </Button>
-              <h1 className="text-2xl font-bold gradient-text-accent">
-                Board View
-              </h1>
+              <h1 className="text-xl font-semibold">Board view</h1>
             </div>
-            
-            <div className="text-sm text-gray-400">
+
+            <div className="text-sm text-muted-foreground">
               Real-time GPIO Monitoring
             </div>
           </div>
@@ -53,7 +51,7 @@ export default function BoardPage() {
           <div className="flex-1">
             <BoardViewer3D />
           </div>
-          
+
           {/* Pin Details Panel */}
           {selectedPin && (
             <div className="w-80 animate-slide-in-right">
