@@ -170,20 +170,20 @@ export function WaveformChart() {
                 iconType="line"
               />
 
-              {waveformPins.map((pinId, index) => {
-                const pin = boardState?.pins.find(p => p.id === pinId)
+              {waveformPins.map((pinNumber, index) => {
+                const pin = boardState?.gpio?.[pinNumber]
                 const color = colors[index % colors.length]
 
                 return (
                   <Line
-                    key={pinId}
+                    key={pinNumber}
                     type="monotone"
-                    dataKey={pinId}
+                    dataKey={pinNumber}
                     stroke={color}
                     strokeWidth={2}
                     dot={false}
                     connectNulls={false}
-                    name={`${pinId} (${pin?.type || 'Unknown'})`}
+                    name={`GPIO ${pinNumber}${pin?.label ? ` (${pin.label})` : ''}`}
                     fill={`url(#gradient${index})`}
                     activeDot={{
                       r: 4,
