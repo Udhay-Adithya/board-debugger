@@ -91,7 +91,9 @@ export function ConnectionManager() {
     setConnectionError(null)
 
     try {
-      const ws = new WebSocket(`ws://${wifiAddress}`)
+      // Use wss:// for HTTPS pages, ws:// for HTTP pages
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const ws = new WebSocket(`${protocol}//${wifiAddress}`)
 
       ws.onopen = () => {
         setConnectionStatus('connected')
