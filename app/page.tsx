@@ -97,18 +97,18 @@ export default function HomePage() {
               </Button>
             </div>
 
-            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
-                <span>No Installation Required</span>
+            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-xs md:text-sm text-muted-foreground">
+              <div className="flex items-center space-x-1.5 md:space-x-2">
+                <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-400" />
+                <span>No Installation</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
-                <span>Works in Browser</span>
+              <div className="flex items-center space-x-1.5 md:space-x-2">
+                <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-400" />
+                <span>Browser-based</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
-                <span>Real-time Updates</span>
+              <div className="flex items-center space-x-1.5 md:space-x-2">
+                <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-400" />
+                <span>Real-time</span>
               </div>
             </div>
           </div>

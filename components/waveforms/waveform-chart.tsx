@@ -193,16 +193,16 @@ export function WaveformChart() {
   if (connectionStatus !== 'connected') {
     return (
       <Card className="h-full">
-        <CardContent className="h-full flex items-center justify-center">
+        <CardContent className="h-full flex items-center justify-center p-4">
           <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary flex items-center justify-center">
-              <Activity className="w-8 h-8 text-white" />
+            <div className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 rounded-full bg-secondary flex items-center justify-center">
+              <Activity className="w-6 h-6 md:w-8 md:h-8 text-white" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">
+            <h3 className="text-lg md:text-xl font-semibold mb-2">
               No Board Connected
             </h3>
-            <p className="text-muted-foreground">
-              Connect to a board to view real-time waveforms
+            <p className="text-sm md:text-base text-muted-foreground">
+              Connect to a board to view waveforms
             </p>
           </div>
         </CardContent>
@@ -213,20 +213,21 @@ export function WaveformChart() {
   if (waveformPins.length === 0) {
     return (
       <Card className="h-full">
-        <CardHeader>
-          <CardTitle className="flex items-center text-xl">
-            <Zap className="w-6 h-6 mr-2 text-primary" />
-            Digital Signal Analyzer
+        <CardHeader className="p-3 md:p-6">
+          <CardTitle className="flex items-center text-base md:text-xl">
+            <Zap className="w-5 h-5 md:w-6 md:h-6 mr-2 text-primary" />
+            <span className="hidden sm:inline">Digital Signal Analyzer</span>
+            <span className="sm:hidden">Signals</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="h-full flex items-center justify-center">
+        <CardContent className="h-full flex items-center justify-center p-4">
           <div className="text-center">
-            <Activity className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
+            <Activity className="w-12 h-12 md:w-16 md:h-16 mx-auto text-muted-foreground mb-3 md:mb-4" />
+            <h3 className="text-base md:text-lg font-semibold mb-2">
               No Pins Selected
             </h3>
-            <p className="text-muted-foreground">
-              Select GPIO pins from the sidebar to view their digital signals
+            <p className="text-sm md:text-base text-muted-foreground px-4">
+              Select GPIO pins from the sidebar
             </p>
           </div>
         </CardContent>
@@ -236,20 +237,21 @@ export function WaveformChart() {
 
   return (
     <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between text-xl">
+      <CardHeader className="p-3 md:p-6">
+        <CardTitle className="flex items-center justify-between text-base md:text-xl">
           <div className="flex items-center">
-            <Zap className="w-6 h-6 mr-2 text-primary" />
-            Digital Signal Timeline
+            <Zap className="w-5 h-5 md:w-6 md:h-6 mr-2 text-primary" />
+            <span className="hidden sm:inline">Digital Signal Timeline</span>
+            <span className="sm:hidden">Signals</span>
           </div>
-          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-            <span>Window: 10s</span>
-            <span>•</span>
+          <div className="flex items-center space-x-2 md:space-x-4 text-xs md:text-sm text-muted-foreground">
+            <span className="hidden sm:inline">Window: 10s</span>
+            <span className="hidden sm:inline">•</span>
             <span>{waveformPins.length} Active</span>
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="h-[calc(100%-5rem)] p-0">
+      <CardContent className="h-[calc(100%-4rem)] md:h-[calc(100%-5rem)] p-0">
         <canvas
           ref={canvasRef}
           className="w-full h-full"

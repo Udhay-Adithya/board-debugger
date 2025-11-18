@@ -82,17 +82,17 @@ function PinRow({ leftPin, rightPin, onPinClick, selectedBcm, gpioData }: PinRow
   const isClickable = (type: string) => type === 'gpio' || type === 'special'
 
   return (
-    <div className="flex items-center gap-2 mb-1">
+    <div className="flex items-center gap-1 md:gap-2 mb-0.5 md:mb-1">
       {/* Left pin */}
-      <div className="flex-1 flex items-center justify-end gap-2">
-        <div className="text-right min-w-[80px]">
-          <div className="text-xs font-mono text-gray-400">Pin {physL}</div>
-          <div className="text-sm font-semibold text-white">{nameL}</div>
+      <div className="flex-1 flex items-center justify-end gap-1 md:gap-2">
+        <div className="text-right min-w-[50px] md:min-w-[80px]">
+          <div className="text-[9px] md:text-xs font-mono text-gray-400">Pin {physL}</div>
+          <div className="text-[10px] md:text-sm font-semibold text-white truncate">{nameL}</div>
           {bcmL !== null && gpioData[bcmL]?.label && (
-            <div className="text-xs text-purple-400">{gpioData[bcmL].label}</div>
+            <div className="hidden sm:block text-xs text-purple-400 truncate">{gpioData[bcmL].label}</div>
           )}
           {bcmL !== null && (
-            <div className={`text-xs font-mono ${gpioData[bcmL]?.value === 1 ? 'text-green-400' : 'text-blue-400'}`}>
+            <div className={`text-[9px] md:text-xs font-mono ${gpioData[bcmL]?.value === 1 ? 'text-green-400' : 'text-blue-400'}`}>
               {gpioData[bcmL]?.value === 1 ? 'HIGH' : gpioData[bcmL]?.value === 0 ? 'LOW' : '--'}
             </div>
           )}
@@ -100,48 +100,48 @@ function PinRow({ leftPin, rightPin, onPinClick, selectedBcm, gpioData }: PinRow
         <button
           onClick={() => isClickable(typeL) && bcmL !== null && onPinClick(bcmL)}
           disabled={!isClickable(typeL)}
-          className={`w-8 h-8 rounded-full ${getPinColor(bcmL, typeL)} ${getPinGlow(bcmL, typeL)} 
+          className={`w-6 h-6 md:w-8 md:h-8 rounded-full ${getPinColor(bcmL, typeL)} ${getPinGlow(bcmL, typeL)} 
             border-2 ${selectedBcm === bcmL ? 'border-purple-400' : 'border-gray-800'}
-            ${isClickable(typeL) ? 'cursor-pointer hover:scale-110' : 'cursor-default'}
+            ${isClickable(typeL) ? 'cursor-pointer active:scale-95 md:hover:scale-110' : 'cursor-default'}
             transition-all duration-200 flex items-center justify-center`}
         >
-          {typeL === 'power' && <Power className="w-4 h-4 text-white" />}
-          {typeL === 'ground' && <Minus className="w-4 h-4 text-white" />}
+          {typeL === 'power' && <Power className="w-3 h-3 md:w-4 md:h-4 text-white" />}
+          {typeL === 'ground' && <Minus className="w-3 h-3 md:w-4 md:h-4 text-white" />}
           {typeL === 'gpio' && bcmL !== null && (
-            <span className="text-[10px] font-bold text-white">{bcmL}</span>
+            <span className="text-[8px] md:text-[10px] font-bold text-white">{bcmL}</span>
           )}
         </button>
       </div>
 
       {/* Center connector */}
-      <div className="w-12 h-8 bg-gray-800 border border-gray-700 rounded flex items-center justify-center">
-        <div className="text-[8px] text-gray-600 font-mono">{physL}-{physR}</div>
+      <div className="w-8 h-6 md:w-12 md:h-8 bg-gray-800 border border-gray-700 rounded flex items-center justify-center shrink-0">
+        <div className="text-[7px] md:text-[8px] text-gray-600 font-mono">{physL}-{physR}</div>
       </div>
 
       {/* Right pin */}
-      <div className="flex-1 flex items-center gap-2">
+      <div className="flex-1 flex items-center gap-1 md:gap-2">
         <button
           onClick={() => isClickable(typeR) && bcmR !== null && onPinClick(bcmR)}
           disabled={!isClickable(typeR)}
-          className={`w-8 h-8 rounded-full ${getPinColor(bcmR, typeR)} ${getPinGlow(bcmR, typeR)}
+          className={`w-6 h-6 md:w-8 md:h-8 rounded-full ${getPinColor(bcmR, typeR)} ${getPinGlow(bcmR, typeR)}
             border-2 ${selectedBcm === bcmR ? 'border-purple-400' : 'border-gray-800'}
-            ${isClickable(typeR) ? 'cursor-pointer hover:scale-110' : 'cursor-default'}
+            ${isClickable(typeR) ? 'cursor-pointer active:scale-95 md:hover:scale-110' : 'cursor-default'}
             transition-all duration-200 flex items-center justify-center`}
         >
-          {typeR === 'power' && <Power className="w-4 h-4 text-white" />}
-          {typeR === 'ground' && <Minus className="w-4 h-4 text-white" />}
+          {typeR === 'power' && <Power className="w-3 h-3 md:w-4 md:h-4 text-white" />}
+          {typeR === 'ground' && <Minus className="w-3 h-3 md:w-4 md:h-4 text-white" />}
           {typeR === 'gpio' && bcmR !== null && (
-            <span className="text-[10px] font-bold text-white">{bcmR}</span>
+            <span className="text-[8px] md:text-[10px] font-bold text-white">{bcmR}</span>
           )}
         </button>
-        <div className="text-left min-w-[80px]">
-          <div className="text-xs font-mono text-gray-400">Pin {physR}</div>
-          <div className="text-sm font-semibold text-white">{nameR}</div>
+        <div className="text-left min-w-[50px] md:min-w-[80px]">
+          <div className="text-[9px] md:text-xs font-mono text-gray-400">Pin {physR}</div>
+          <div className="text-[10px] md:text-sm font-semibold text-white truncate">{nameR}</div>
           {bcmR !== null && gpioData[bcmR]?.label && (
-            <div className="text-xs text-purple-400">{gpioData[bcmR].label}</div>
+            <div className="hidden sm:block text-xs text-purple-400 truncate">{gpioData[bcmR].label}</div>
           )}
           {bcmR !== null && (
-            <div className={`text-xs font-mono ${gpioData[bcmR]?.value === 1 ? 'text-green-400' : 'text-blue-400'}`}>
+            <div className={`text-[9px] md:text-xs font-mono ${gpioData[bcmR]?.value === 1 ? 'text-green-400' : 'text-blue-400'}`}>
               {gpioData[bcmR]?.value === 1 ? 'HIGH' : gpioData[bcmR]?.value === 0 ? 'LOW' : '--'}
             </div>
           )}
@@ -187,42 +187,42 @@ export function BoardViewer3D() {
   }
 
   return (
-    <div className="h-full overflow-auto bg-background p-8">
+    <div className="h-full overflow-auto bg-background p-3 md:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Board Header */}
-        <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <Cpu className="w-8 h-8 text-green-500" />
-            <h2 className="text-3xl font-bold text-white">Raspberry Pi GPIO Header</h2>
+        <div className="mb-4 md:mb-6 lg:mb-8 text-center">
+          <div className="flex items-center justify-center gap-2 md:gap-3 mb-2">
+            <Cpu className="w-6 h-6 md:w-8 md:h-8 text-green-500" />
+            <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-white">Raspberry Pi GPIO</h2>
           </div>
-          <p className="text-gray-400">40-Pin GPIO with BCM Numbering</p>
+          <p className="text-xs md:text-sm text-gray-400">40-Pin GPIO with BCM Numbering</p>
         </div>
 
         {/* Board Container */}
-        <div className="bg-gradient-to-br from-green-900/20 to-green-950/40 border-2 border-green-500/30 rounded-xl p-8 shadow-2xl">
+        <div className="bg-gradient-to-br from-green-900/20 to-green-950/40 border-2 border-green-500/30 rounded-lg md:rounded-xl p-3 md:p-6 lg:p-8 shadow-2xl">
           {/* GPIO Header */}
-          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-lg p-3 md:p-4 lg:p-6">
+            <div className="flex items-center justify-between mb-3 md:mb-4 pb-2 md:pb-3 border-b border-gray-700">
               <div className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-yellow-400" />
-                <span className="font-semibold text-white">GPIO Pins</span>
+                <Zap className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
+                <span className="text-sm md:text-base font-semibold text-white">GPIO</span>
               </div>
-              <div className="flex gap-4 text-xs">
+              <div className="flex gap-2 md:gap-3 lg:gap-4 text-[10px] md:text-xs">
                 <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="text-gray-400">HIGH</span>
+                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-green-500"></div>
+                  <span className="hidden sm:inline text-gray-400">HIGH</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span className="text-gray-400">LOW</span>
+                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-blue-500"></div>
+                  <span className="hidden sm:inline text-gray-400">LOW</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span className="text-gray-400">POWER</span>
+                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-red-500"></div>
+                  <span className="hidden md:inline text-gray-400">PWR</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-gray-700"></div>
-                  <span className="text-gray-400">GND</span>
+                  <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-gray-700"></div>
+                  <span className="hidden md:inline text-gray-400">GND</span>
                 </div>
               </div>
             </div>
@@ -242,22 +242,22 @@ export function BoardViewer3D() {
 
           {/* System Info */}
           {boardState?.system && (
-            <div className="mt-6 grid grid-cols-3 gap-4">
-              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-lg p-4">
-                <div className="text-xs text-gray-400 mb-1">CPU Temperature</div>
-                <div className={`text-2xl font-bold ${boardState.system.cpu_temp_c && boardState.system.cpu_temp_c > 70 ? 'text-red-500' : 'text-green-400'}`}>
+            <div className="mt-4 md:mt-6 grid grid-cols-3 gap-2 md:gap-3 lg:gap-4">
+              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-lg p-2 md:p-3 lg:p-4">
+                <div className="text-[10px] md:text-xs text-gray-400 mb-1">CPU Temp</div>
+                <div className={`text-sm md:text-xl lg:text-2xl font-bold ${boardState.system.cpu_temp_c && boardState.system.cpu_temp_c > 70 ? 'text-red-500' : 'text-green-400'}`}>
                   {boardState.system.cpu_temp_c?.toFixed(1) || '--'}°C
                 </div>
               </div>
-              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-lg p-4">
-                <div className="text-xs text-gray-400 mb-1">CPU Usage</div>
-                <div className="text-2xl font-bold text-blue-400">
+              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-lg p-2 md:p-3 lg:p-4">
+                <div className="text-[10px] md:text-xs text-gray-400 mb-1">CPU</div>
+                <div className="text-sm md:text-xl lg:text-2xl font-bold text-blue-400">
                   {boardState.system.cpu_percent?.toFixed(0) || '--'}%
                 </div>
               </div>
-              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-lg p-4">
-                <div className="text-xs text-gray-400 mb-1">Disk Usage</div>
-                <div className="text-2xl font-bold text-purple-400">
+              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-lg p-2 md:p-3 lg:p-4">
+                <div className="text-[10px] md:text-xs text-gray-400 mb-1">Disk</div>
+                <div className="text-sm md:text-xl lg:text-2xl font-bold text-purple-400">
                   {boardState.system.disk_used_percent?.toFixed(0) || '--'}%
                 </div>
               </div>
@@ -265,11 +265,11 @@ export function BoardViewer3D() {
           )}
 
           {/* Network Status */}
-          <div className="mt-4 grid grid-cols-2 gap-4">
+          <div className="mt-3 md:mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 lg:gap-4">
             {boardState?.wifi && (
               <div className={`backdrop-blur-sm border rounded-lg p-4 ${boardState.wifi.connected
-                  ? 'bg-green-900/20 border-green-500/30'
-                  : 'bg-gray-900/20 border-gray-700'
+                ? 'bg-green-900/20 border-green-500/30'
+                : 'bg-gray-900/20 border-gray-700'
                 }`}>
                 <div className="flex items-center gap-2 mb-2">
                   <svg className={`w-5 h-5 ${boardState.wifi.connected ? 'text-green-400' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20">
@@ -292,8 +292,8 @@ export function BoardViewer3D() {
 
             {boardState?.bluetooth && (
               <div className={`backdrop-blur-sm border rounded-lg p-4 ${boardState.bluetooth.powered
-                  ? 'bg-blue-900/20 border-blue-500/30'
-                  : 'bg-gray-900/20 border-gray-700'
+                ? 'bg-blue-900/20 border-blue-500/30'
+                : 'bg-gray-900/20 border-gray-700'
                 }`}>
                 <div className="flex items-center gap-2 mb-2">
                   <svg className={`w-5 h-5 ${boardState.bluetooth.powered ? 'text-blue-400' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20">
@@ -317,8 +317,9 @@ export function BoardViewer3D() {
         </div>
 
         {/* Legend */}
-        <div className="mt-6 text-center text-xs text-gray-500">
-          <p>Click on GPIO pins to view details • BCM pin numbers shown inside pins</p>
+        <div className="mt-4 md:mt-6 text-center text-[10px] md:text-xs text-gray-500">
+          <p className="hidden sm:block">Click on GPIO pins to view details • BCM pin numbers shown inside pins</p>
+          <p className="sm:hidden">Tap pins for details</p>
         </div>
       </div>
     </div>

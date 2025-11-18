@@ -21,16 +21,16 @@ export function WaveformSidebar() {
 
   if (!boardState || !boardState.gpio) {
     return (
-      <div className="h-full border-r border-border p-6 bg-background/60">
-        <div className="text-center py-12">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary flex items-center justify-center">
-            <Activity className="w-8 h-8 text-white" />
+      <div className="h-full border-r border-border p-4 md:p-6 bg-background/60">
+        <div className="text-center py-8 md:py-12">
+          <div className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 rounded-full bg-secondary flex items-center justify-center">
+            <Activity className="w-6 h-6 md:w-8 md:h-8 text-white" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">
+          <h3 className="text-base md:text-lg font-semibold mb-2">
             No Board Connected
           </h3>
-          <p className="text-muted-foreground text-sm">
-            Connect to a board to analyze waveforms
+          <p className="text-muted-foreground text-xs md:text-sm px-2">
+            Connect to a board
           </p>
         </div>
       </div>
@@ -48,13 +48,13 @@ export function WaveformSidebar() {
   }
 
   return (
-    <div className="h-full border-r border-border p-6 space-y-6 overflow-y-auto bg-background/60">
+    <div className="h-full border-r border-border p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto bg-background/60">
       {/* Connection Status */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-lg">
-            <Zap className="w-5 h-5 mr-2 text-primary" />
-            Waveform Control
+        <CardHeader className="p-4">
+          <CardTitle className="flex items-center text-base md:text-lg">
+            <Zap className="w-4 h-4 md:w-5 md:h-5 mr-2 text-primary" />
+            Control
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -116,10 +116,10 @@ export function WaveformSidebar() {
 
       {/* Pin Selection */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-lg">
-            <Activity className="w-5 h-5 mr-2 text-primary" />
-            Pin Selection
+        <CardHeader className="p-4">
+          <CardTitle className="flex items-center text-base md:text-lg">
+            <Activity className="w-4 h-4 md:w-5 md:h-5 mr-2 text-primary" />
+            Pins
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

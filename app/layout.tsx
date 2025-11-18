@@ -7,7 +7,12 @@ import { Navigation } from '@/components/navigation'
 export const metadata: Metadata = {
   title: 'Board Debugger - Real-time GPIO Visualization',
   description: 'Professional real-time board debugging with 3D visualization and waveform analysis',
-  generator: 'v0.dev'
+  generator: 'v0.dev',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+  }
 }
 
 export default function RootLayout({

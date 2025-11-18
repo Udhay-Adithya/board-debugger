@@ -245,12 +245,12 @@ export function ConnectionSidebar() {
   }
 
   return (
-    <div className="h-full border-r border-border p-6 space-y-6 overflow-y-auto bg-background/60">
+    <div className="h-full border-r border-border p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto bg-background/60">
       {/* Connection Status */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-lg">
-            <Zap className="w-5 h-5 mr-2 text-primary" />
+        <CardHeader className="p-4">
+          <CardTitle className="flex items-center text-base md:text-lg">
+            <Zap className="w-4 h-4 md:w-5 md:h-5 mr-2 text-primary" />
             Connection
             {getStatusBadge()}
           </CardTitle>
@@ -337,9 +337,9 @@ export function ConnectionSidebar() {
       {/* Board Settings */}
       {connectionStatus === 'connected' && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center text-lg">
-              <Settings className="w-5 h-5 mr-2 text-primary" />
+          <CardHeader className="p-4">
+            <CardTitle className="flex items-center text-base md:text-lg">
+              <Settings className="w-4 h-4 md:w-5 md:h-5 mr-2 text-primary" />
               Settings
             </CardTitle>
           </CardHeader>
@@ -370,9 +370,9 @@ export function ConnectionSidebar() {
       {/* GPIO Pin Overview */}
       {boardState && boardState.gpio && Object.keys(boardState.gpio).length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center text-lg">
-              <Activity className="w-5 h-5 mr-2 text-primary" />
+          <CardHeader className="p-4">
+            <CardTitle className="flex items-center text-base md:text-lg">
+              <Activity className="w-4 h-4 md:w-5 md:h-5 mr-2 text-primary" />
               GPIO Pins
             </CardTitle>
           </CardHeader>
