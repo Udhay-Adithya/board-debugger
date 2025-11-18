@@ -18,8 +18,8 @@ export function ConnectionManager() {
     setConnectionStatus,
     setConnectionError
   } = useBoardStore()
-  
-  const [wifiAddress, setWifiAddress] = useState("192.168.1.100:81")
+
+  const [wifiAddress, setWifiAddress] = useState("10.75.195.61:8000/ws")
 
   const connectUSB = async () => {
     setConnectionType('usb')
@@ -39,8 +39,6 @@ export function ConnectionManager() {
 
         await device.open()
         setConnectionStatus('connected')
-        // Start mock data simulation
-        simulateBoardData()
         return
       }
 
@@ -50,13 +48,12 @@ export function ConnectionManager() {
         // Try a common baud rate; real app should allow configuring this
         await port.open({ baudRate: 115200 })
         setConnectionStatus('connected')
-        simulateBoardData()
         return
       }
 
       // Neither API available
       throw new Error('This browser does not support WebUSB or Web Serial. Use Chrome/Edge on HTTPS or localhost.')
-      
+
     } catch (error) {
       setConnectionStatus('error')
       setConnectionError(error instanceof Error ? error.message : 'USB connection failed')
@@ -81,10 +78,7 @@ export function ConnectionManager() {
 
       const server = await device.gatt?.connect()
       setConnectionStatus('connected')
-      
-      // Start mock data simulation
-      simulateBoardData()
-      
+
     } catch (error) {
       setConnectionStatus('error')
       setConnectionError(error instanceof Error ? error.message : 'Bluetooth connection failed')
@@ -98,17 +92,85 @@ export function ConnectionManager() {
 
     try {
       const ws = new WebSocket(`ws://${wifiAddress}`)
-      
+
       ws.onopen = () => {
         setConnectionStatus('connected')
-        simulateBoardData()
+        // Initialize board state
+        const { updateBoardState } = useBoardStore.getState()
+        updateBoardState({
+          boardType: 'RASPBERRY_PI',
+          gpio: {},
+          wifi: null,
+          bluetooth: null,
+          system: null
+        })
       }
-      
-      ws.onerror = () => {
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data)
+          const { updateGPIO, updateWiFi, updateBluetooth, updateSystem, addWaveformData } = useBoardStore.getState()
+
+          switch (message.type) {
+            case 'gpio':
+              // Handle GPIO pin update
+              updateGPIO(message.data)
+
+              // Add to waveform data for all pins in the update
+              const timestamp = Date.now()
+              if ('pin' in message.data) {
+                // Old format: single pin
+                addWaveformData(message.data.pin, [{
+                  timestamp,
+                  value: message.data.value
+                }])
+              } else {
+                // New format: dictionary of pins
+                Object.values(message.data).forEach((pinData: any) => {
+                  addWaveformData(pinData.pin, [{
+                    timestamp,
+                    value: pinData.value
+                  }])
+                })
+              }
+              break
+
+            case 'wifi':
+              // Handle WiFi status update
+              updateWiFi(message.data)
+              break
+
+            case 'bluetooth':
+              // Handle Bluetooth status update
+              updateBluetooth(message.data)
+              break
+
+            case 'system':
+              // Handle system health update
+              updateSystem(message.data)
+              break
+
+            default:
+              console.warn('Unknown message type:', message.type)
+          }
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error)
+        }
+      }
+
+      ws.onerror = (error) => {
         setConnectionStatus('error')
-        setConnectionError('WiFi connection failed')
+        setConnectionError('WiFi connection failed. Make sure the server is running at ws://' + wifiAddress)
+        console.error('WebSocket error:', error)
       }
-      
+
+      ws.onclose = () => {
+        if (connectionStatus === 'connected') {
+          setConnectionStatus('disconnected')
+          setConnectionError('Connection closed')
+        }
+      }
+
     } catch (error) {
       setConnectionStatus('error')
       setConnectionError(error instanceof Error ? error.message : 'WiFi connection failed')
@@ -119,66 +181,6 @@ export function ConnectionManager() {
     setConnectionStatus('disconnected')
     setConnectionType(null)
     setConnectionError(null)
-  }
-
-  // Mock data simulation for demonstration
-  const simulateBoardData = () => {
-    const { updateBoardState, addWaveformData } = useBoardStore.getState()
-    
-    const mockBoardState = {
-      boardType: "ARDUINO_UNO",
-      pins: [
-        { id: "D13", type: "DIGITAL" as const, mode: "OUTPUT" as const, value: "HIGH" as const, isPWM: false },
-        { id: "D12", type: "DIGITAL" as const, mode: "INPUT" as const, value: "LOW" as const, isPWM: false },
-        { id: "D11", type: "DIGITAL" as const, mode: "OUTPUT" as const, value: "HIGH" as const, isPWM: true, pwmDuty: 75 },
-        { id: "A0", type: "ANALOG" as const, mode: "INPUT" as const, value: 512, voltage: 2.5 },
-        { id: "A1", type: "ANALOG" as const, mode: "INPUT" as const, value: 256, voltage: 1.25 },
-        { id: "D2", type: "DIGITAL" as const, mode: "INPUT" as const, value: "LOW" as const, isPWM: false },
-        { id: "D3", type: "DIGITAL" as const, mode: "OUTPUT" as const, value: "LOW" as const, isPWM: false },
-      ],
-      powerStatus: {
-        voltage: 4.8,
-        isLow: true
-      }
-    }
-    
-    updateBoardState(mockBoardState)
-    
-    // Simulate real-time data updates
-    setInterval(() => {
-      const updatedState = {
-        ...mockBoardState,
-        pins: mockBoardState.pins.map(pin => {
-          if (pin.type === 'ANALOG') {
-            return {
-              ...pin,
-              value: Math.floor(Math.random() * 1024),
-              voltage: (Math.random() * 5)
-            }
-          }
-          if (pin.type === 'DIGITAL' && pin.mode === 'INPUT') {
-            return {
-              ...pin,
-              value: Math.random() > 0.5 ? "HIGH" as const : "LOW" as const
-            }
-          }
-          return pin
-        })
-      }
-      
-      updateBoardState(updatedState)
-      
-      // Add waveform data
-      const timestamp = Date.now()
-      updatedState.pins.forEach(pin => {
-        if (pin.type === 'ANALOG') {
-          addWaveformData(pin.id, [{
-            timestamp,
-            value: typeof pin.value === 'number' ? pin.value : 0
-          }])
-        }
-      })
-    }, 100)
   }
 
   const getStatusIcon = () => {
@@ -242,19 +244,19 @@ export function ConnectionManager() {
                 WiFi
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="usb" className="space-y-4">
-              <Button 
-                onClick={connectUSB} 
+              <Button
+                onClick={connectUSB}
                 disabled={connectionStatus === 'connecting'}
                 className="w-full"
               >
                 {connectionStatus === 'connecting' ? 'Connecting...' : 'Connect via USB'}
               </Button>
             </TabsContent>
-            
+
             <TabsContent value="bluetooth" className="space-y-4">
-              <Button 
+              <Button
                 onClick={connectBluetooth}
                 disabled={connectionStatus === 'connecting'}
                 className="w-full"
@@ -262,14 +264,14 @@ export function ConnectionManager() {
                 {connectionStatus === 'connecting' ? 'Connecting...' : 'Scan & Connect'}
               </Button>
             </TabsContent>
-            
+
             <TabsContent value="wifi" className="space-y-4">
               <Input
-                placeholder="192.168.1.100:81"
+                placeholder="10.75.195.61:8000/ws"
                 value={wifiAddress}
                 onChange={(e) => setWifiAddress(e.target.value)}
               />
-              <Button 
+              <Button
                 onClick={connectWiFi}
                 disabled={connectionStatus === 'connecting'}
                 className="w-full"
@@ -279,7 +281,7 @@ export function ConnectionManager() {
             </TabsContent>
           </Tabs>
         )}
-        
+
         {connectionError && (
           <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
             <p className="text-sm text-destructive">{connectionError}</p>

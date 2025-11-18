@@ -2,18 +2,33 @@ import { create } from 'zustand'
 
 export type ConnectionType = 'usb' | 'bluetooth' | 'wifi'
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
-export type PinType = 'DIGITAL' | 'ANALOG' | 'PWM'
-export type PinMode = 'INPUT' | 'OUTPUT' | 'INPUT_PULLUP'
-export type PinValue = 'HIGH' | 'LOW' | number
 
-export interface Pin {
-  id: string
-  type: PinType
-  mode: PinMode
-  value: PinValue
-  isPWM?: boolean
-  pwmDuty?: number
-  voltage?: number
+// Raspberry Pi GPIO Pin
+export interface GPIOPin {
+  pin: number
+  value: number  // 0 or 1
+  label: string | null
+}
+
+// WiFi Status
+export interface WiFiStatus {
+  connected: boolean
+  ssid: string | null
+  ip_address: string | null
+  signal_level_dbm: number | null
+}
+
+// Bluetooth Status
+export interface BluetoothStatus {
+  powered: boolean
+  connected: boolean
+}
+
+// System Health
+export interface SystemHealth {
+  cpu_temp_c: number | null
+  cpu_percent: number
+  disk_used_percent: number
 }
 
 export interface WaveformData {
@@ -21,13 +36,13 @@ export interface WaveformData {
   value: number
 }
 
+// Raspberry Pi Board State
 export interface BoardState {
-  boardType: string
-  pins: Pin[]
-  powerStatus: {
-    voltage: number
-    isLow: boolean
-  }
+  boardType: 'RASPBERRY_PI'
+  gpio: Record<string, GPIOPin>
+  wifi: WiFiStatus | null
+  bluetooth: BluetoothStatus | null
+  system: SystemHealth | null
 }
 
 export interface BoardStore {
@@ -38,11 +53,11 @@ export interface BoardStore {
 
   // Board state
   boardState: BoardState | null
-  selectedPin: Pin | null
+  selectedPin: GPIOPin | null
 
   // Waveform data
   waveformData: Record<string, WaveformData[]>
-  waveformPins: string[]
+  waveformPins: number[]
 
   // Settings
   refreshRate: number
@@ -53,9 +68,13 @@ export interface BoardStore {
   setConnectionStatus: (status: ConnectionStatus) => void
   setConnectionError: (error: string | null) => void
   updateBoardState: (state: BoardState) => void
-  selectPin: (pin: Pin | null) => void
-  addWaveformData: (pinId: string, data: WaveformData[]) => void
-  toggleWaveformPin: (pinId: string) => void
+  updateGPIO: (gpioData: GPIOPin | Record<string, GPIOPin>) => void
+  updateWiFi: (wifi: WiFiStatus) => void
+  updateBluetooth: (bluetooth: BluetoothStatus) => void
+  updateSystem: (system: SystemHealth) => void
+  selectPin: (pin: GPIOPin | null) => void
+  addWaveformData: (pinNumber: number, data: WaveformData[]) => void
+  toggleWaveformPin: (pinNumber: number) => void
   setRefreshRate: (rate: number) => void
   setTheme: (theme: 'light' | 'dark') => void
   sendCommand: (command: any) => void
@@ -83,37 +102,106 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
 
     // Update selected pin if it exists in new state
     const { selectedPin } = get()
-    if (selectedPin) {
-      const updatedPin = state.pins.find(p => p.id === selectedPin.id)
-      if (updatedPin) {
-        set({ selectedPin: updatedPin })
+    if (selectedPin && state.gpio[selectedPin.pin.toString()]) {
+      set({ selectedPin: state.gpio[selectedPin.pin.toString()] })
+    }
+  },
+
+  updateGPIO: (gpioData) => {
+    const { boardState } = get()
+    if (boardState) {
+      // Handle both old format (single pin) and new format (dictionary of pins)
+      let updatedGpio: Record<string, GPIOPin>
+
+      if ('pin' in gpioData) {
+        // Old format: single pin object
+        updatedGpio = {
+          ...boardState.gpio,
+          [gpioData.pin.toString()]: gpioData
+        }
+      } else {
+        // New format: dictionary of pins
+        updatedGpio = gpioData
       }
+
+      set({
+        boardState: {
+          ...boardState,
+          gpio: updatedGpio
+        }
+      })
+
+      // Update selected pin if it exists in the new data
+      const { selectedPin } = get()
+      if (selectedPin) {
+        const pinKey = selectedPin.pin.toString()
+        if (updatedGpio[pinKey]) {
+          set({ selectedPin: updatedGpio[pinKey] })
+        }
+      }
+    }
+  },
+
+  updateWiFi: (wifi) => {
+    const { boardState } = get()
+    if (boardState) {
+      set({
+        boardState: {
+          ...boardState,
+          wifi
+        }
+      })
+    }
+  },
+
+  updateBluetooth: (bluetooth) => {
+    const { boardState } = get()
+    if (boardState) {
+      set({
+        boardState: {
+          ...boardState,
+          bluetooth
+        }
+      })
+    }
+  },
+
+  updateSystem: (system) => {
+    const { boardState } = get()
+    if (boardState) {
+      set({
+        boardState: {
+          ...boardState,
+          system
+        }
+      })
     }
   },
 
   selectPin: (pin) => set({ selectedPin: pin }),
 
-  addWaveformData: (pinId, data) => {
+  addWaveformData: (pinNumber, data) => {
     const { waveformData } = get()
-    const existingData = waveformData[pinId] || []
+    const pinKey = pinNumber.toString()
+    const existingData = waveformData[pinKey] || []
     const newData = [...existingData, ...data].slice(-1000) // Keep last 1000 points
 
     set({
       waveformData: {
         ...waveformData,
-        [pinId]: newData
+        [pinKey]: newData
       }
     })
   },
 
-  toggleWaveformPin: (pinId) => {
+  toggleWaveformPin: (pinNumber) => {
     const { waveformPins } = get()
-    const isActive = waveformPins.includes(pinId)
+    const isActive = waveformPins.includes(pinNumber)
 
     set({
       waveformPins: isActive
-        ? waveformPins.filter(id => id !== pinId)
-        : [...waveformPins, pinId]
+        ? waveformPins.filter(id => id !== pinNumber)
+        : [...waveformPins, pinNumber]
     })
   },
 

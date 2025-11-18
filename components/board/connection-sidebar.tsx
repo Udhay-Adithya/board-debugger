@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,7 +24,8 @@ export function ConnectionSidebar() {
     selectPin
   } = useBoardStore()
 
-  const [wifiAddress, setWifiAddress] = useState("192.168.1.100:81")
+  const [wifiAddress, setWifiAddress] = useState("10.75.195.61:8000/ws")
+  const wsRef = useRef<WebSocket | null>(null)
 
   const connectUSB = async () => {
     setConnectionType('usb')
@@ -44,7 +45,6 @@ export function ConnectionSidebar() {
 
         await device.open()
         setConnectionStatus('connected')
-        simulateBoardData()
         return
       }
 
@@ -52,7 +52,6 @@ export function ConnectionSidebar() {
         const port = await nav.serial.requestPort()
         await port.open({ baudRate: 115200 })
         setConnectionStatus('connected')
-        simulateBoardData()
         return
       }
 
@@ -82,7 +81,6 @@ export function ConnectionSidebar() {
 
       const server = await device.gatt?.connect()
       setConnectionStatus('connected')
-      simulateBoardData()
 
     } catch (error) {
       setConnectionStatus('error')
@@ -96,85 +94,118 @@ export function ConnectionSidebar() {
     setConnectionError(null)
 
     try {
+      console.log('Connecting to WebSocket:', `ws://${wifiAddress}`)
       const ws = new WebSocket(`ws://${wifiAddress}`)
+      wsRef.current = ws
 
       ws.onopen = () => {
+        console.log('WebSocket connected successfully')
         setConnectionStatus('connected')
-        simulateBoardData()
+        // Initialize board state
+        const { updateBoardState } = useBoardStore.getState()
+        updateBoardState({
+          boardType: 'RASPBERRY_PI',
+          gpio: {},
+          wifi: null,
+          bluetooth: null,
+          system: null
+        })
+        console.log('Board state initialized for Raspberry Pi')
       }
 
-      ws.onerror = () => {
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data)
+          console.log('WebSocket message received:', message)
+          const { updateGPIO, updateWiFi, updateBluetooth, updateSystem, addWaveformData } = useBoardStore.getState()
+
+          switch (message.type) {
+            case 'gpio':
+              console.log('GPIO update:', message.data)
+              updateGPIO(message.data)
+
+              // Handle waveform data for all pins in the update
+              const timestamp = Date.now()
+              if ('pin' in message.data) {
+                // Old format: single pin
+                addWaveformData(message.data.pin, [{
+                  timestamp,
+                  value: message.data.value
+                }])
+              } else {
+                // New format: dictionary of pins
+                Object.values(message.data).forEach((pinData: any) => {
+                  addWaveformData(pinData.pin, [{
+                    timestamp,
+                    value: pinData.value
+                  }])
+                })
+              }
+              break
+
+            case 'wifi':
+              console.log('WiFi update:', message.data)
+              updateWiFi(message.data)
+              break
+
+            case 'bluetooth':
+              console.log('Bluetooth update:', message.data)
+              updateBluetooth(message.data)
+              break
+
+            case 'system':
+              console.log('System update:', message.data)
+              updateSystem(message.data)
+              break
+
+            default:
+              console.warn('Unknown message type:', message.type)
+          }
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error)
+        }
+      }
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error)
         setConnectionStatus('error')
-        setConnectionError('WiFi connection failed')
+        setConnectionError('WiFi connection failed. Make sure the server is running at ws://' + wifiAddress)
+      }
+
+      ws.onclose = (event) => {
+        console.log('WebSocket closed:', event.code, event.reason)
+        if (connectionStatus === 'connected') {
+          setConnectionStatus('disconnected')
+          setConnectionError('Connection closed')
+        }
+        wsRef.current = null
       }
 
     } catch (error) {
+      console.error('WebSocket connection error:', error)
       setConnectionStatus('error')
       setConnectionError(error instanceof Error ? error.message : 'WiFi connection failed')
     }
   }
 
   const disconnect = () => {
+    console.log('Disconnecting...')
+    if (wsRef.current) {
+      wsRef.current.close()
+      wsRef.current = null
+    }
     setConnectionStatus('disconnected')
     setConnectionType(null)
     setConnectionError(null)
-  }
-
-  const simulateBoardData = () => {
-    const { updateBoardState, addWaveformData } = useBoardStore.getState()
-
-    const mockBoardState = {
-      boardType: "ARDUINO_UNO",
-      pins: [
-        { id: "D13", type: "DIGITAL" as const, mode: "OUTPUT" as const, value: "HIGH" as const, isPWM: false },
-        { id: "D12", type: "DIGITAL" as const, mode: "INPUT" as const, value: "LOW" as const, isPWM: false },
-        { id: "D11", type: "DIGITAL" as const, mode: "OUTPUT" as const, value: "HIGH" as const, isPWM: true, pwmDuty: 75 },
-        { id: "A0", type: "ANALOG" as const, mode: "INPUT" as const, value: 512, voltage: 2.5 },
-        { id: "A1", type: "ANALOG" as const, mode: "INPUT" as const, value: 256, voltage: 1.25 },
-        { id: "D2", type: "DIGITAL" as const, mode: "INPUT" as const, value: "LOW" as const, isPWM: false },
-        { id: "D3", type: "DIGITAL" as const, mode: "OUTPUT" as const, value: "LOW" as const, isPWM: false },
-      ],
-      powerStatus: {
-        voltage: 4.8,
-        isLow: true
-      }
-    }
-
-    updateBoardState(mockBoardState)
-
-    setInterval(() => {
-      const updatedState = {
-        ...mockBoardState,
-        pins: mockBoardState.pins.map(pin => {
-          if (pin.type === 'ANALOG') {
-            return {
-              ...pin,
-              value: Math.floor(Math.random() * 1024),
-              voltage: (Math.random() * 5)
-            }
-          }
-          if (pin.type === 'DIGITAL' && pin.mode === 'INPUT') {
-            return {
-              ...pin,
-              value: Math.random() > 0.5 ? "HIGH" as const : "LOW" as const
-            }
-          }
-          return pin
-        })
-      }
-
-      updateBoardState(updatedState)
-
-      const timestamp = Date.now()
-      updatedState.pins.forEach(pin => {
-        if (pin.type === 'ANALOG') {
-          addWaveformData(pin.id, [{
-            timestamp,
-            value: typeof pin.value === 'number' ? pin.value : 0
-          }])
-        }
-      })
-    }, refreshRate)
+    // Clear board state
+    const { updateBoardState } = useBoardStore.getState()
+    updateBoardState({
+      boardType: 'RASPBERRY_PI',
+      gpio: {},
+      wifi: null,
+      bluetooth: null,
+      system: null
+    })
   }
 
   const getStatusIcon = () => {
@@ -279,7 +310,7 @@ export function ConnectionSidebar() {
 
               <TabsContent value="wifi" className="space-y-4 mt-4">
                 <Input
-                  placeholder="192.168.1.100:81"
+                  placeholder="192.168.1.100:8000/ws"
                   value={wifiAddress}
                   onChange={(e) => setWifiAddress(e.target.value)}
                   className=""
@@ -336,38 +367,34 @@ export function ConnectionSidebar() {
         </Card>
       )}
 
-      {/* Pin Overview */}
-      {boardState && (
+      {/* GPIO Pin Overview */}
+      {boardState && boardState.gpio && Object.keys(boardState.gpio).length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center text-lg">
               <Activity className="w-5 h-5 mr-2 text-primary" />
-              Pin Overview
+              GPIO Pins
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {boardState.pins.map((pin) => (
+              {Object.values(boardState.gpio).sort((a, b) => a.pin - b.pin).map((pin) => (
                 <div
-                  key={pin.id}
+                  key={pin.pin}
                   onClick={() => selectPin(pin)}
                   className="flex items-center justify-between p-2 rounded-md bg-secondary hover:bg-secondary/80 cursor-pointer transition-colors"
                 >
                   <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${pin.type === 'DIGITAL'
-                        ? pin.value === 'HIGH' ? 'bg-emerald-400' : 'bg-red-400'
-                        : 'bg-primary'
-                      }`} />
-                    <span className="text-sm font-medium">{pin.id}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {pin.type}
-                    </Badge>
+                    <div className={`w-2 h-2 rounded-full ${pin.value === 1 ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                    <span className="text-sm font-medium">GPIO {pin.pin}</span>
+                    {pin.label && (
+                      <Badge variant="outline" className="text-xs">
+                        {pin.label}
+                      </Badge>
+                    )}
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    {pin.type === 'ANALOG'
-                      ? `${pin.value}${pin.voltage ? ` (${pin.voltage.toFixed(1)}V)` : ''}`
-                      : pin.value
-                    }
+                    {pin.value === 1 ? 'HIGH' : 'LOW'}
                   </span>
                 </div>
               ))}

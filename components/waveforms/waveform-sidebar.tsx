@@ -19,7 +19,7 @@ export function WaveformSidebar() {
   const [isPaused, setIsPaused] = useState(false)
   const [timeScale, setTimeScale] = useState(5000)
 
-  if (!boardState) {
+  if (!boardState || !boardState.gpio) {
     return (
       <div className="h-full border-r border-border p-6 bg-background/60">
         <div className="text-center py-12">
@@ -37,8 +37,7 @@ export function WaveformSidebar() {
     )
   }
 
-  const analogPins = boardState.pins.filter(pin => pin.type === 'ANALOG')
-  const digitalPins = boardState.pins.filter(pin => pin.type === 'DIGITAL')
+  const gpioPins = Object.values(boardState.gpio || {}).sort((a, b) => a.pin - b.pin)
 
   const clearWaveforms = () => {
     console.log('Clearing waveforms')
@@ -124,87 +123,45 @@ export function WaveformSidebar() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Analog Pins */}
-          {analogPins.length > 0 && (
+          {/* GPIO Pins */}
+          {gpioPins.length > 0 ? (
             <div>
-              <h4 className="text-sm font-medium text-gray-300 mb-3">Analog Pins</h4>
+              <h4 className="text-sm font-medium text-gray-300 mb-3">GPIO Pins (BCM)</h4>
               <div className="space-y-2">
-                {analogPins.map(pin => (
-                  <div key={pin.id} className="flex items-center justify-between p-2 rounded-md bg-secondary hover:bg-secondary/80 transition-colors">
+                {gpioPins.map(pin => (
+                  <div key={pin.pin} className="flex items-center justify-between p-2 rounded-md bg-secondary hover:bg-secondary/80 transition-colors">
                     <div className="flex items-center space-x-3">
                       <Checkbox
-                        id={pin.id}
-                        checked={waveformPins.includes(pin.id)}
-                        onCheckedChange={() => toggleWaveformPin(pin.id)}
+                        id={`gpio-${pin.pin}`}
+                        checked={waveformPins.includes(pin.pin)}
+                        onCheckedChange={() => toggleWaveformPin(pin.pin)}
                       />
                       <div>
                         <label
-                          htmlFor={pin.id}
+                          htmlFor={`gpio-${pin.pin}`}
                           className="text-sm font-medium cursor-pointer"
                         >
-                          {pin.id}
+                          GPIO {pin.pin}
                         </label>
-                        <div className="text-xs text-muted-foreground">
-                          {typeof pin.value === 'number' ? pin.value : 0}
-                          {pin.voltage && ` (${pin.voltage.toFixed(1)}V)`}
-                        </div>
+                        {pin.label && (
+                          <div className="text-xs text-muted-foreground">
+                            {pin.label}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <Badge variant="outline">
-                      ANALOG
+                    <Badge variant={pin.value === 1 ? 'default' : 'outline'} className={pin.value === 1 ? 'bg-green-500' : ''}>
+                      {pin.value === 1 ? 'HIGH' : 'LOW'}
                     </Badge>
                   </div>
                 ))}
               </div>
             </div>
-          )}
-
-          {/* Digital Pins */}
-          {digitalPins.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium text-gray-300 mb-3">Digital Pins</h4>
-              <div className="space-y-2">
-                {digitalPins.map(pin => (
-                  <div key={pin.id} className="flex items-center justify-between p-2 rounded-md bg-secondary hover:bg-secondary/80 transition-colors">
-                    <div className="flex items-center space-x-3">
-                      <Checkbox
-                        id={pin.id}
-                        checked={waveformPins.includes(pin.id)}
-                        onCheckedChange={() => toggleWaveformPin(pin.id)}
-                      />
-                      <div>
-                        <label
-                          htmlFor={pin.id}
-                          className="text-sm font-medium cursor-pointer"
-                        >
-                          {pin.id}
-                        </label>
-                        <div className="text-xs text-muted-foreground">
-                          {pin.value} {pin.isPWM && `(${pin.pwmDuty}% PWM)`}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {pin.isPWM && (
-                        <Badge variant="outline" className="text-xs">
-                          PWM
-                        </Badge>
-                      )}
-                      <Badge variant="outline" className="text-xs">
-                        {pin.value}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {waveformPins.length === 0 && (
+          ) : (
             <div className="text-center py-8">
               <Activity className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground">
-                Select pins to monitor their waveforms
+                No GPIO pins detected yet
               </p>
             </div>
           )}
@@ -221,22 +178,25 @@ export function WaveformSidebar() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {waveformPins.map((pinId, index) => {
-                const pin = boardState.pins.find(p => p.id === pinId)
-                const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#ff00ff']
+              {waveformPins.map((pinNumber, index) => {
+                const pin = gpioPins.find(p => p.pin === pinNumber)
+                const colors = ['#8b5cf6', '#22c55e', '#eab308', '#f97316', '#06b6d4', '#ef4444']
                 return (
-                  <div key={pinId} className="flex items-center justify-between p-2 rounded-md bg-secondary">
+                  <div key={pinNumber} className="flex items-center justify-between p-2 rounded-md bg-secondary">
                     <div className="flex items-center space-x-2">
                       <div
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: colors[index % colors.length] }}
                       />
-                      <span className="text-sm font-medium">{pinId}</span>
+                      <span className="text-sm font-medium">GPIO {pinNumber}</span>
+                      {pin?.label && (
+                        <span className="text-xs text-muted-foreground">({pin.label})</span>
+                      )}
                     </div>
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => toggleWaveformPin(pinId)}
+                      onClick={() => toggleWaveformPin(pinNumber)}
                       className="text-muted-foreground hover:text-foreground h-6 w-6 p-0"
                     >
                       ×
