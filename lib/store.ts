@@ -68,7 +68,7 @@ export interface BoardStore {
   setConnectionStatus: (status: ConnectionStatus) => void
   setConnectionError: (error: string | null) => void
   updateBoardState: (state: BoardState) => void
-  updateGPIO: (gpio: GPIOPin) => void
+  updateGPIO: (gpioData: GPIOPin | Record<string, GPIOPin>) => void
   updateWiFi: (wifi: WiFiStatus) => void
   updateBluetooth: (bluetooth: BluetoothStatus) => void
   updateSystem: (system: SystemHealth) => void
@@ -107,23 +107,37 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     }
   },
 
-  updateGPIO: (gpio) => {
+  updateGPIO: (gpioData) => {
     const { boardState } = get()
     if (boardState) {
+      // Handle both old format (single pin) and new format (dictionary of pins)
+      let updatedGpio: Record<string, GPIOPin>
+
+      if ('pin' in gpioData) {
+        // Old format: single pin object
+        updatedGpio = {
+          ...boardState.gpio,
+          [gpioData.pin.toString()]: gpioData
+        }
+      } else {
+        // New format: dictionary of pins
+        updatedGpio = gpioData
+      }
+
       set({
         boardState: {
           ...boardState,
-          gpio: {
-            ...boardState.gpio,
-            [gpio.pin.toString()]: gpio
-          }
+          gpio: updatedGpio
         }
       })
 
-      // Update selected pin if it's the one being updated
+      // Update selected pin if it exists in the new data
       const { selectedPin } = get()
-      if (selectedPin && selectedPin.pin === gpio.pin) {
-        set({ selectedPin: gpio })
+      if (selectedPin) {
+        const pinKey = selectedPin.pin.toString()
+        if (updatedGpio[pinKey]) {
+          set({ selectedPin: updatedGpio[pinKey] })
+        }
       }
     }
   },

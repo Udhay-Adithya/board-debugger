@@ -1,347 +1,326 @@
 "use client"
 
-import { Canvas } from "@react-three/fiber"
-import { OrbitControls, Text, Box, Environment } from "@react-three/drei"
-import { useBoardStore, GPIOPin } from "@/lib/store"
-import { useRef, useState } from "react"
-import * as THREE from "three"
+import { useBoardStore } from "@/lib/store"
+import { useState } from "react"
+import { Cpu, Zap, Power, Minus } from 'lucide-react'
 
-function Pin({
-  position,
-  pin,
-  onClick,
-  isSelected
-}: {
-  position: [number, number, number]
-  pin: GPIOPin
-  onClick: () => void
-  isSelected: boolean
-}) {
-  const meshRef = useRef<THREE.Mesh>(null)
-  const [hovered, setHovered] = useState(false)
+// Raspberry Pi 40-pin GPIO header layout (BCM numbering)
+const GPIO_LAYOUT = [
+  // [BCM, Physical, Name, Type]
+  [null, 1, '3.3V', 'power'],
+  [null, 2, '5V', 'power'],
+  [2, 3, 'GPIO2', 'gpio'],
+  [null, 4, '5V', 'power'],
+  [3, 5, 'GPIO3', 'gpio'],
+  [null, 6, 'GND', 'ground'],
+  [4, 7, 'GPIO4', 'gpio'],
+  [14, 8, 'GPIO14', 'gpio'],
+  [null, 9, 'GND', 'ground'],
+  [15, 10, 'GPIO15', 'gpio'],
+  [17, 11, 'GPIO17', 'gpio'],
+  [18, 12, 'GPIO18', 'gpio'],
+  [27, 13, 'GPIO27', 'gpio'],
+  [null, 14, 'GND', 'ground'],
+  [22, 15, 'GPIO22', 'gpio'],
+  [23, 16, 'GPIO23', 'gpio'],
+  [null, 17, '3.3V', 'power'],
+  [24, 18, 'GPIO24', 'gpio'],
+  [10, 19, 'GPIO10', 'gpio'],
+  [null, 20, 'GND', 'ground'],
+  [9, 21, 'GPIO9', 'gpio'],
+  [25, 22, 'GPIO25', 'gpio'],
+  [11, 23, 'GPIO11', 'gpio'],
+  [8, 24, 'GPIO8', 'gpio'],
+  [null, 25, 'GND', 'ground'],
+  [7, 26, 'GPIO7', 'gpio'],
+  [0, 27, 'GPIO0', 'special'],
+  [1, 28, 'GPIO1', 'special'],
+  [5, 29, 'GPIO5', 'gpio'],
+  [null, 30, 'GND', 'ground'],
+  [6, 31, 'GPIO6', 'gpio'],
+  [12, 32, 'GPIO12', 'gpio'],
+  [13, 33, 'GPIO13', 'gpio'],
+  [null, 34, 'GND', 'ground'],
+  [19, 35, 'GPIO19', 'gpio'],
+  [16, 36, 'GPIO16', 'gpio'],
+  [26, 37, 'GPIO26', 'gpio'],
+  [20, 38, 'GPIO20', 'gpio'],
+  [null, 39, 'GND', 'ground'],
+  [21, 40, 'GPIO21', 'gpio'],
+] as const
 
-  const getPinColor = () => {
-    return pin.value === 1 ? '#22c55e' : '#ef4444'
-  }
-
-  const getPinHeight = () => {
-    return pin.value === 1 ? 0.3 : 0.1
-  }
-
-  const getEmissiveIntensity = () => {
-    if (hovered || isSelected) return 0.3
-    if (pin.value === 1) return 0.2
-    return 0
-  }
-
-  return (
-    <group position={position}>
-      {/* Pin Base */}
-      <Box
-        ref={meshRef}
-        args={[0.15, getPinHeight(), 0.15]}
-        onClick={onClick}
-        onPointerOver={(e) => {
-          e.stopPropagation()
-          setHovered(true)
-          document.body.style.cursor = 'pointer'
-        }}
-        onPointerOut={() => {
-          setHovered(false)
-          document.body.style.cursor = 'default'
-        }}
-      >
-        <meshStandardMaterial
-          color={getPinColor()}
-          emissive={getPinColor()}
-          emissiveIntensity={getEmissiveIntensity()}
-          metalness={0.3}
-          roughness={0.4}
-        />
-      </Box>
-
-      {/* Selection Ring */}
-      {isSelected && (
-        <mesh position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.12, 0.17, 16]} />
-          <meshBasicMaterial color="#8b5cf6" transparent opacity={0.8} />
-        </mesh>
-      )}
-
-      {/* Pin Number */}
-      <Text
-        position={[0, getPinHeight() + 0.15, 0]}
-        fontSize={0.07}
-        color={isSelected ? "#8b5cf6" : "white"}
-        anchorX="center"
-        anchorY="middle"
-        font="/fonts/Inter-Bold.ttf"
-      >
-        {pin.pin}
-      </Text>
-
-      {/* Pin Label */}
-      {pin.label && (
-        <Text
-          position={[0, getPinHeight() + 0.28, 0]}
-          fontSize={0.05}
-          color={isSelected ? "#a78bfa" : "#94a3b8"}
-          anchorX="center"
-          anchorY="middle"
-          font="/fonts/Inter-Regular.ttf"
-        >
-          {pin.label}
-        </Text>
-      )}
-
-      {/* Pin State */}
-      <Text
-        position={[0, getPinHeight() + 0.4, 0]}
-        fontSize={0.06}
-        color={pin.value === 1 ? "#22c55e" : "#94a3b8"}
-        anchorX="center"
-        anchorY="middle"
-        font="/fonts/Inter-Regular.ttf"
-      >
-        {pin.value === 1 ? 'HIGH' : 'LOW'}
-      </Text>
-    </group>
-  )
+interface PinRowProps {
+  leftPin: typeof GPIO_LAYOUT[number]
+  rightPin: typeof GPIO_LAYOUT[number]
+  onPinClick: (bcm: number | null) => void
+  selectedBcm: number | null
+  gpioData: Record<number, { pin: number; value: number; label: string | null }>
 }
 
-function Board3D() {
-  const { boardState, selectPin, selectedPin } = useBoardStore()
+function PinRow({ leftPin, rightPin, onPinClick, selectedBcm, gpioData }: PinRowProps) {
+  const [bcmL, physL, nameL, typeL] = leftPin
+  const [bcmR, physR, nameR, typeR] = rightPin
 
-  if (!boardState || !boardState.gpio || Object.keys(boardState.gpio).length === 0) {
-    return (
-      <group>
-        <Text position={[0, 0, 0]} fontSize={0.3} color="#64748b" anchorX="center" anchorY="middle">
-          No GPIO pins detected
-        </Text>
-        <Text position={[0, -0.5, 0]} fontSize={0.15} color="#475569" anchorX="center" anchorY="middle">
-          Waiting for GPIO data from Raspberry Pi...
-        </Text>
-      </group>
-    )
+  const getPinColor = (bcm: number | null, type: string) => {
+    if (type === 'power') return 'bg-red-500'
+    if (type === 'ground') return 'bg-gray-700'
+    if (type === 'special') return 'bg-purple-500'
+    if (bcm !== null && gpioData[bcm]) {
+      return gpioData[bcm].value === 1 ? 'bg-green-500' : 'bg-blue-500'
+    }
+    return 'bg-gray-600'
   }
 
-  const pins = Object.values(boardState.gpio || {}).sort((a, b) => a.pin - b.pin)
-  const boardWidth = 5
-  const boardHeight = 3
+  const getPinGlow = (bcm: number | null, type: string) => {
+    if (type === 'power') return 'shadow-[0_0_10px_rgba(239,68,68,0.6)]'
+    if (bcm !== null && gpioData[bcm]?.value === 1) {
+      return 'shadow-[0_0_15px_rgba(34,197,94,0.8)] animate-pulse'
+    }
+    return ''
+  }
 
-  // Arrange pins in a more realistic dual-row layout (like actual GPIO header)
-  const pinsPerSide = Math.ceil(pins.length / 2)
+  const isClickable = (type: string) => type === 'gpio' || type === 'special'
 
   return (
-    <group>
-      {/* Board Base */}
-      <Box args={[boardWidth, 0.1, boardHeight]} position={[0, -0.05, 0]}>
-        <meshStandardMaterial
-          color="#15803d"
-          metalness={0.1}
-          roughness={0.8}
-        />
-      </Box>
+    <div className="flex items-center gap-2 mb-1">
+      {/* Left pin */}
+      <div className="flex-1 flex items-center justify-end gap-2">
+        <div className="text-right min-w-[80px]">
+          <div className="text-xs font-mono text-gray-400">Pin {physL}</div>
+          <div className="text-sm font-semibold text-white">{nameL}</div>
+          {bcmL !== null && gpioData[bcmL]?.label && (
+            <div className="text-xs text-purple-400">{gpioData[bcmL].label}</div>
+          )}
+          {bcmL !== null && (
+            <div className={`text-xs font-mono ${gpioData[bcmL]?.value === 1 ? 'text-green-400' : 'text-blue-400'}`}>
+              {gpioData[bcmL]?.value === 1 ? 'HIGH' : gpioData[bcmL]?.value === 0 ? 'LOW' : '--'}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={() => isClickable(typeL) && bcmL !== null && onPinClick(bcmL)}
+          disabled={!isClickable(typeL)}
+          className={`w-8 h-8 rounded-full ${getPinColor(bcmL, typeL)} ${getPinGlow(bcmL, typeL)} 
+            border-2 ${selectedBcm === bcmL ? 'border-purple-400' : 'border-gray-800'}
+            ${isClickable(typeL) ? 'cursor-pointer hover:scale-110' : 'cursor-default'}
+            transition-all duration-200 flex items-center justify-center`}
+        >
+          {typeL === 'power' && <Power className="w-4 h-4 text-white" />}
+          {typeL === 'ground' && <Minus className="w-4 h-4 text-white" />}
+          {typeL === 'gpio' && bcmL !== null && (
+            <span className="text-[10px] font-bold text-white">{bcmL}</span>
+          )}
+        </button>
+      </div>
 
-      {/* Board Outline Glow */}
-      <mesh position={[0, -0.05, 0]}>
-        <boxGeometry args={[boardWidth + 0.1, 0.12, boardHeight + 0.1]} />
-        <meshBasicMaterial
-          color="#22c55e"
-          transparent
-          opacity={0.1}
-          wireframe
-        />
-      </mesh>
+      {/* Center connector */}
+      <div className="w-12 h-8 bg-gray-800 border border-gray-700 rounded flex items-center justify-center">
+        <div className="text-[8px] text-gray-600 font-mono">{physL}-{physR}</div>
+      </div>
 
-      {/* Board Label */}
-      <Text
-        position={[0, 0.7, 0]}
-        fontSize={0.2}
-        color="#22c55e"
-        anchorX="center"
-        anchorY="middle"
-        font="/fonts/Inter-Bold.ttf"
-      >
-        RASPBERRY PI
-      </Text>
-
-      <Text
-        position={[0, 0.45, 0]}
-        fontSize={0.1}
-        color="#94a3b8"
-        anchorX="center"
-        anchorY="middle"
-        font="/fonts/Inter-Regular.ttf"
-      >
-        GPIO Header (BCM)
-      </Text>
-
-      {/* Pins - Dual row layout */}
-      {pins.map((pin, index) => {
-        const row = index % 2 // 0 for top row, 1 for bottom row
-        const col = Math.floor(index / 2)
-
-        // Spread pins along the length of the board
-        const spacing = (boardWidth - 1) / Math.max(pinsPerSide - 1, 1)
-        const x = -boardWidth / 2 + 0.5 + col * spacing
-        const z = row === 0 ? -0.3 : 0.3
-
-        return (
-          <Pin
-            key={pin.pin}
-            position={[x, 0.1, z]}
-            pin={pin}
-            onClick={() => selectPin(pin)}
-            isSelected={selectedPin?.pin === pin.pin}
-          />
-        )
-      })}
-
-      {/* System Info */}
-      {boardState.system && (
-        <group position={[0, -1.2, 0]}>
-          <Text
-            position={[-1.5, 0, 0]}
-            fontSize={0.08}
-            color={boardState.system.cpu_temp_c && boardState.system.cpu_temp_c > 70 ? "#ef4444" : "#94a3b8"}
-            anchorX="left"
-            anchorY="middle"
-            font="/fonts/Inter-Regular.ttf"
-          >
-            🌡️ {boardState.system.cpu_temp_c?.toFixed(1) || '--'}°C
-          </Text>
-          <Text
-            position={[-0.5, 0, 0]}
-            fontSize={0.08}
-            color="#94a3b8"
-            anchorX="left"
-            anchorY="middle"
-            font="/fonts/Inter-Regular.ttf"
-          >
-            💻 {boardState.system.cpu_percent?.toFixed(0) || '--'}%
-          </Text>
-          <Text
-            position={[0.5, 0, 0]}
-            fontSize={0.08}
-            color="#94a3b8"
-            anchorX="left"
-            anchorY="middle"
-            font="/fonts/Inter-Regular.ttf"
-          >
-            💾 {boardState.system.disk_used_percent?.toFixed(0) || '--'}%
-          </Text>
-        </group>
-      )}
-    </group>
+      {/* Right pin */}
+      <div className="flex-1 flex items-center gap-2">
+        <button
+          onClick={() => isClickable(typeR) && bcmR !== null && onPinClick(bcmR)}
+          disabled={!isClickable(typeR)}
+          className={`w-8 h-8 rounded-full ${getPinColor(bcmR, typeR)} ${getPinGlow(bcmR, typeR)}
+            border-2 ${selectedBcm === bcmR ? 'border-purple-400' : 'border-gray-800'}
+            ${isClickable(typeR) ? 'cursor-pointer hover:scale-110' : 'cursor-default'}
+            transition-all duration-200 flex items-center justify-center`}
+        >
+          {typeR === 'power' && <Power className="w-4 h-4 text-white" />}
+          {typeR === 'ground' && <Minus className="w-4 h-4 text-white" />}
+          {typeR === 'gpio' && bcmR !== null && (
+            <span className="text-[10px] font-bold text-white">{bcmR}</span>
+          )}
+        </button>
+        <div className="text-left min-w-[80px]">
+          <div className="text-xs font-mono text-gray-400">Pin {physR}</div>
+          <div className="text-sm font-semibold text-white">{nameR}</div>
+          {bcmR !== null && gpioData[bcmR]?.label && (
+            <div className="text-xs text-purple-400">{gpioData[bcmR].label}</div>
+          )}
+          {bcmR !== null && (
+            <div className={`text-xs font-mono ${gpioData[bcmR]?.value === 1 ? 'text-green-400' : 'text-blue-400'}`}>
+              {gpioData[bcmR]?.value === 1 ? 'HIGH' : gpioData[bcmR]?.value === 0 ? 'LOW' : '--'}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
 export function BoardViewer3D() {
-  const { connectionStatus, boardState } = useBoardStore()
+  const { connectionStatus, boardState, selectPin, selectedPin } = useBoardStore()
+
+  const handlePinClick = (bcm: number | null) => {
+    if (bcm !== null && boardState?.gpio?.[bcm]) {
+      selectPin(boardState.gpio[bcm])
+    }
+  }
+
+  if (connectionStatus !== 'connected') {
+    return (
+      <div className="h-full flex items-center justify-center bg-background">
+        <div className="text-center p-8">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+            <Cpu className="w-8 h-8 text-green-500" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">
+            No Raspberry Pi Connected
+          </h3>
+          <p className="text-muted-foreground">
+            Connect to your Raspberry Pi via WiFi to view GPIO pins
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const gpioData = boardState?.gpio || {}
+  const pinPairs: [typeof GPIO_LAYOUT[number], typeof GPIO_LAYOUT[number]][] = []
+
+  // Create pairs (odd pin on left, even pin on right)
+  for (let i = 0; i < GPIO_LAYOUT.length; i += 2) {
+    pinPairs.push([GPIO_LAYOUT[i], GPIO_LAYOUT[i + 1]])
+  }
 
   return (
-    <div className="h-full relative">
-      <Canvas
-        camera={{ position: [6, 6, 6], fov: 50 }}
-        className="bg-background"
-      >
-        <ambientLight intensity={0.3} />
-        <pointLight position={[10, 10, 10]} intensity={0.8} color="#ffffff" />
-        <pointLight position={[-10, -10, -10]} intensity={0.2} color="#22c55e" />
-        <spotLight
-          position={[0, 10, 0]}
-          angle={0.3}
-          penumbra={1}
-          intensity={0.5}
-          color="#22c55e"
-        />
-
-        <Environment preset="night" />
-        <Board3D />
-        <OrbitControls
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-          maxDistance={15}
-          minDistance={3}
-        />
-      </Canvas>
-
-      {/* Status Overlay - Top Right */}
-      {connectionStatus === 'connected' && boardState && (
-        <div className="absolute top-4 right-4 space-y-2">
-          {/* WiFi Status */}
-          {boardState.wifi && (
-            <div className={`px-3 py-2 rounded-lg backdrop-blur-sm ${boardState.wifi.connected
-                ? 'bg-green-500/20 border border-green-500/30'
-                : 'bg-gray-500/20 border border-gray-500/30'
-              }`}>
-              <div className="flex items-center gap-2 text-sm">
-                <svg className={`w-4 h-4 ${boardState.wifi.connected ? 'text-green-400' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                </svg>
-                <div>
-                  {boardState.wifi.connected ? (
-                    <>
-                      <div className="font-medium text-white">{boardState.wifi.ssid}</div>
-                      <div className="text-xs text-gray-300">{boardState.wifi.ip_address}</div>
-                      <div className="text-xs text-gray-400">{boardState.wifi.signal_level_dbm} dBm</div>
-                    </>
-                  ) : (
-                    <div className="text-gray-400">WiFi Disconnected</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Bluetooth Status */}
-          {boardState.bluetooth && (
-            <div className={`px-3 py-2 rounded-lg backdrop-blur-sm ${boardState.bluetooth.powered
-                ? 'bg-blue-500/20 border border-blue-500/30'
-                : 'bg-gray-500/20 border border-gray-500/30'
-              }`}>
-              <div className="flex items-center gap-2 text-sm">
-                <svg className={`w-4 h-4 ${boardState.bluetooth.powered ? 'text-blue-400' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 2L6 6h3v8H6l4 4 4-4h-3V6h3l-4-4z" />
-                </svg>
-                <div className="text-white">
-                  {boardState.bluetooth.powered ? (
-                    <>
-                      <span className="font-medium">Bluetooth</span>
-                      {boardState.bluetooth.connected && (
-                        <span className="ml-2 text-xs text-green-400">• Connected</span>
-                      )}
-                    </>
-                  ) : (
-                    <span className="text-gray-400">Bluetooth Off</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+    <div className="h-full overflow-auto bg-background p-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Board Header */}
+        <div className="mb-8 text-center">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <Cpu className="w-8 h-8 text-green-500" />
+            <h2 className="text-3xl font-bold text-white">Raspberry Pi GPIO Header</h2>
+          </div>
+          <p className="text-gray-400">40-Pin GPIO with BCM Numbering</p>
         </div>
-      )}
 
-      {connectionStatus !== 'connected' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/70">
-          <div className="text-center p-8">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
-              <svg className="w-8 h-8 text-green-500" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
-              </svg>
+        {/* Board Container */}
+        <div className="bg-gradient-to-br from-green-900/20 to-green-950/40 border-2 border-green-500/30 rounded-xl p-8 shadow-2xl">
+          {/* GPIO Header */}
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
+              <div className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-yellow-400" />
+                <span className="font-semibold text-white">GPIO Pins</span>
+              </div>
+              <div className="flex gap-4 text-xs">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="text-gray-400">HIGH</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span className="text-gray-400">LOW</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <span className="text-gray-400">POWER</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-gray-700"></div>
+                  <span className="text-gray-400">GND</span>
+                </div>
+              </div>
             </div>
-            <h3 className="text-xl font-semibold mb-2">
-              No Raspberry Pi Connected
-            </h3>
-            <p className="text-muted-foreground">
-              Connect to your Raspberry Pi via WiFi to view GPIO pins
-            </p>
+
+            {/* Pin Rows */}
+            {pinPairs.map((pair, index) => (
+              <PinRow
+                key={index}
+                leftPin={pair[0]}
+                rightPin={pair[1]}
+                onPinClick={handlePinClick}
+                selectedBcm={selectedPin?.pin || null}
+                gpioData={gpioData}
+              />
+            ))}
+          </div>
+
+          {/* System Info */}
+          {boardState?.system && (
+            <div className="mt-6 grid grid-cols-3 gap-4">
+              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-lg p-4">
+                <div className="text-xs text-gray-400 mb-1">CPU Temperature</div>
+                <div className={`text-2xl font-bold ${boardState.system.cpu_temp_c && boardState.system.cpu_temp_c > 70 ? 'text-red-500' : 'text-green-400'}`}>
+                  {boardState.system.cpu_temp_c?.toFixed(1) || '--'}°C
+                </div>
+              </div>
+              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-lg p-4">
+                <div className="text-xs text-gray-400 mb-1">CPU Usage</div>
+                <div className="text-2xl font-bold text-blue-400">
+                  {boardState.system.cpu_percent?.toFixed(0) || '--'}%
+                </div>
+              </div>
+              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-lg p-4">
+                <div className="text-xs text-gray-400 mb-1">Disk Usage</div>
+                <div className="text-2xl font-bold text-purple-400">
+                  {boardState.system.disk_used_percent?.toFixed(0) || '--'}%
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Network Status */}
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            {boardState?.wifi && (
+              <div className={`backdrop-blur-sm border rounded-lg p-4 ${boardState.wifi.connected
+                  ? 'bg-green-900/20 border-green-500/30'
+                  : 'bg-gray-900/20 border-gray-700'
+                }`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className={`w-5 h-5 ${boardState.wifi.connected ? 'text-green-400' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                  </svg>
+                  <span className="font-semibold text-white">WiFi</span>
+                </div>
+                {boardState.wifi.connected ? (
+                  <>
+                    <div className="text-sm text-gray-300">{boardState.wifi.ssid}</div>
+                    <div className="text-xs text-gray-400">{boardState.wifi.ip_address}</div>
+                    <div className="text-xs text-gray-500">{boardState.wifi.signal_level_dbm} dBm</div>
+                  </>
+                ) : (
+                  <div className="text-sm text-gray-400">Disconnected</div>
+                )}
+              </div>
+            )}
+
+            {boardState?.bluetooth && (
+              <div className={`backdrop-blur-sm border rounded-lg p-4 ${boardState.bluetooth.powered
+                  ? 'bg-blue-900/20 border-blue-500/30'
+                  : 'bg-gray-900/20 border-gray-700'
+                }`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className={`w-5 h-5 ${boardState.bluetooth.powered ? 'text-blue-400' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 2L6 6h3v8H6l4 4 4-4h-3V6h3l-4-4z" />
+                  </svg>
+                  <span className="font-semibold text-white">Bluetooth</span>
+                </div>
+                {boardState.bluetooth.powered ? (
+                  <>
+                    <div className="text-sm text-gray-300">Powered On</div>
+                    {boardState.bluetooth.connected && (
+                      <div className="text-xs text-green-400">• Device Connected</div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-sm text-gray-400">Powered Off</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
-      )}
+
+        {/* Legend */}
+        <div className="mt-6 text-center text-xs text-gray-500">
+          <p>Click on GPIO pins to view details • BCM pin numbers shown inside pins</p>
+        </div>
+      </div>
     </div>
   )
 }

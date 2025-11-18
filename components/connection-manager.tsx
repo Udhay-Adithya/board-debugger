@@ -115,11 +115,24 @@ export function ConnectionManager() {
             case 'gpio':
               // Handle GPIO pin update
               updateGPIO(message.data)
-              // Add to waveform data
-              addWaveformData(message.data.pin, [{
-                timestamp: Date.now(),
-                value: message.data.value
-              }])
+
+              // Add to waveform data for all pins in the update
+              const timestamp = Date.now()
+              if ('pin' in message.data) {
+                // Old format: single pin
+                addWaveformData(message.data.pin, [{
+                  timestamp,
+                  value: message.data.value
+                }])
+              } else {
+                // New format: dictionary of pins
+                Object.values(message.data).forEach((pinData: any) => {
+                  addWaveformData(pinData.pin, [{
+                    timestamp,
+                    value: pinData.value
+                  }])
+                })
+              }
               break
 
             case 'wifi':
